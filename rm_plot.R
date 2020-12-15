@@ -1,4 +1,5 @@
 library(tidyverse)
+library(here)
 
 examenes_raw <- read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto7/PCR.csv")
 
@@ -101,32 +102,37 @@ week_to_date <- function(week_n) {
 
 
 # Third plot
+color_hitos <- "firebrick3"
+
 casos_pred_median_testing %>% 
   filter(Semana >= 30) %>% 
   ggplot(aes(Semana, pred_with_median_tests)) + 
   geom_line() +
   geom_point() +
-  geom_vline(xintercept = 33, color = "red") +
-  geom_vline(xintercept = 38, color = "red") +
+  geom_vline(xintercept = 33, color = color_hitos) +
+  geom_vline(xintercept = 38, color = color_hitos) +
   annotate("label",
            x = 33,
            y = 800,
-           label = "Stgo. Centro avanzó\na fase 2") +
+           label = "Stgo. Centro avanzó\na fase 2", color = color_hitos) +
   annotate("label",
            x = 38,
            y = 800,
-           label = "Puente Alto avanzó\na fase 2") +
-  ggrepel::geom_text_repel(aes(label = scales::comma(pred_with_median_tests, 1))) +
-  labs(title = "Casos diarios en RM\najustando por cantidad de tests PCR",
+           label = "Puente Alto avanzó\na fase 2", color = color_hitos) +
+  ggrepel::geom_text_repel(aes(label = scales::comma(pred_with_median_tests, 1)),
+                           size = 3) +
+  labs(title = "Casos diarios en Región Metropolitana\najustando por cantidad de tests PCR",
        subtitle = "Asumiendo 10.000 tests diarios",
        y = "Casos diarios",
        x = "Semana",
        caption = "Datos: github.com/MinCiencia/Datos-COVID19.
-       Código: @francisco_yira") +
+       Código: github.com/franciscoyira/covid_plots") +
   scale_x_continuous(breaks = seq(30, 50, 2),
                      labels = week_to_date) +
   coord_flip() +
-  theme_minimal() + 
-  ggsave("casos_rm.png",
-         dpi = 400, width = 9, height = 14,
+  ggthemes::theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.margin = unit(c(0.7,0.1,0.7,0.1), "inches")) +
+  ggsave(here("outputs", "casos_rm_stories.png"),
+         dpi = 400, width = 9, height = 16,
          units = "cm", type = "cairo-png", scale = 1.4)
