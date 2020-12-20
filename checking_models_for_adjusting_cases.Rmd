@@ -1,0 +1,158 @@
+---
+title: "Comparing methods to adjust cases by number of PCR tests"
+output: html_notebook
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(here)
+library(modelr)
+
+source(here("functions", "retrieve_tests_cases_region.R"))
+```
+
+Import data and filter Metropolitan Region:
+```{r}
+examenes_casos_rm <- 
+  retrieve_tests_cases_region() %>% 
+  filter(Region == "Metropolitana")
+```
+
+## Model 1
+
+One linear regression per week (n=7), with different slope and intercept.
+```{r}
+df_adj_cases_model1 <- 
+  examenes_casos_rm %>% 
+  nest(data = c(-Semana)) %>% 
+  mutate(reg_casos = map(data, ~lm(N_Casos ~ N_Tests, data = .)),
+         adjusted_cases = map_dbl(reg_casos, 
+                                  ~predict(., newdata = tibble(N_Tests = 10000)))) 
+
+df_adj_cases_model1 %>% 
+  select(Semana, adjusted_cases)
+```
+
+## Model 2
+
+One linear regression for all the data (n=255), with fixed effects per week (different intercepts, but the same slope).
+```{r}
+model2 <- 
+  lm(N_Casos ~ factor(Semana) + N_Tests, data = examenes_casos_rm)
+
+df_adj_cases_model2 <- 
+  examenes_casos_rm %>% 
+  mutate(N_Tests = 10000) %>% 
+  add_predictions(model2, var = "adjusted_cases") %>%
+  group_by(Semana) %>% 
+  summarise(adjusted_cases = mean(adjusted_cases))
+
+df_adj_cases_model2
+```
+
+## Model 3 
+
+Same as model 2, but using a logarithmic function to consider decreasing marginal confirmed cases as testing capacity is increased:
+```{r}
+model3 <- 
+  lm(N_Casos ~ factor(Semana) + log(N_Tests), data = examenes_casos_rm)
+
+df_adj_cases_model3 <- 
+  examenes_casos_rm %>% 
+  mutate(N_Tests = 10000) %>% 
+  add_predictions(model3, var = "adjusted_cases") %>%
+  group_by(Semana) %>% 
+  summarise(adjusted_cases = mean(adjusted_cases))
+
+df_adj_cases_model3
+```
+
+# Comparing methods
+
+Looking at the curves of adjusted cases:
+```{r}
+df_adj_cases_all_models <- 
+  df_adj_cases_model1 %>% 
+  rename(model1 = adjusted_cases) %>% 
+  left_join(df_adj_cases_model2 %>% 
+              rename(model2 = adjusted_cases), by = "Semana") %>% 
+  left_join(df_adj_cases_model3 %>% 
+              rename(model3 = adjusted_cases), by = "Semana") %>% 
+  pivot_longer(
+    cols = starts_with("model"),
+    names_to = "model",
+    values_to = "adjusted_cases"
+  )
+
+ggplot(df_adj_cases_all_models,
+       aes(Semana, adjusted_cases, color = model)) +
+  geom_line()
+```
+
+Plotting the predicted cases curves in a Cases ~ Tests scatter plot.
+```{r}
+examenes_casos_rm_filt <- 
+  examenes_casos_rm %>% 
+  filter(Semana %in% c(c(31, 35, 40, 49, 51)))
+
+examenes_casos_rm_filt %>% 
+  ggplot(aes(N_Tests, N_Casos, color = factor(Semana))) +
+  geom_point()
+```
+
+Creating grid of tests, weeks, and cases:
+```{r}
+df1 <- 
+examenes_casos_rm %>% 
+  modelr::data_grid(Semana, N_Tests) %>% 
+  filter(Semana %in% c(c(31, 35, 40, 49, 51))) %>% 
+  left_join(df_adj_cases_model1 %>% 
+              select(Semana, reg_casos), by = "Semana") %>% 
+  add_predictions(model2, var = "model2") %>% 
+  add_predictions(model3, var = "model3") %>% 
+  mutate(model1 = map2_dbl(reg_casos, N_Tests, 
+                           ~predict(object = .x, newdata = tibble(N_Tests = .y)))) 
+  
+  
+df1 %>% 
+  pivot_longer(
+    cols = starts_with("model"),
+    names_to = "model",
+    values_to = "adjusted_cases"
+  ) %>% 
+  ggplot(aes(N_Tests, color = factor(Semana))) +
+  geom_line(aes(y = adjusted_cases)) +
+  facet_wrap(~model) +
+  labs(color = "Week") +
+  geom_point(data = examenes_casos_rm_filt,
+             aes(N_Tests, N_Casos))
+```
+
+Intersecting slopes are problematic because the questions I want to answer is "are we better off in week X compared to week Y?"... and it can't be true for a week to have less virus prevalence than other for certain levels of testing, but more for others (testing levels don't change virus prevalence).
+
+## Caso de semana 51
+```{r}
+df_sem51 <- 
+  examenes_casos_rm %>% 
+  filter(Semana == 51)
+
+bind_rows(
+  `Including yesterday` = df_sem51,
+  `Excluding yesterday` = df_sem51 %>% 
+    filter(Fecha != lubridate::ymd(20201218)),
+  .id = "type_df"
+) %>% 
+  ggplot(aes(N_Tests, N_Casos)) +
+  geom_point(aes(color = type_df)) +
+  geom_smooth(aes(color = type_df), method = "lm", se = FALSE, fullrange=TRUE) +
+  expand_limits(x = 5000) +
+  labs(color = "Data",
+       y = "Confirmed cases",
+       x = "Tests") +
+  annotate("label",
+           label = "Yesterday\n(dec. 18)",
+           x = 17000,
+           y = 620,
+           color = "#00BFC4")
+```
+
