@@ -1,40 +1,16 @@
 library(tidyverse)
 library(here)
+library(modelr)
 
-examenes_raw <- read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto7/PCR.csv")
-
-examenes_region_dia <- 
-  examenes_raw %>% 
-  pivot_longer(
-    cols = -c(Region, `Codigo region`, Poblacion),
-    names_to = "Fecha",
-    values_to = "N_Tests"
-  ) %>% 
-  mutate(Fecha = lubridate::ymd(Fecha),
-         N_Tests = replace_na(N_Tests, 0))
-
-casos_raw <- read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto13/CasosNuevosCumulativo.csv")
-
-casos_region_dia <- 
-  casos_raw %>% 
-  pivot_longer(
-    cols = -Region,
-    names_to = "Fecha",
-    values_to = "N_Casos"
-  ) %>% 
-  mutate(Fecha = lubridate::ymd(Fecha))
-
-examenes_casos <- 
-  examenes_region_dia %>% 
-  left_join(casos_region_dia,
-            by = c("Region", "Fecha")) %>% 
-  mutate(Semana = lubridate::isoweek(Fecha))
-
+source(here("functions", "retrieve_tests_cases_region.R"))
 
 examenes_casos_rm <- 
-  examenes_casos %>% 
+  retrieve_tests_cases_region() %>% 
   filter(Region == "Metropolitana")
 
+max_fecha <- 
+  examenes_casos_rm %>% 
+  pull(Fecha) %>% max()
 
 # Exploratory plot: Cases vs Tests
 examenes_casos_rm %>% 
@@ -51,18 +27,29 @@ median_tests <-
   median()
 
 # Nest by week and run regressions
-casos_pred_10000_tests <- 
+casos_pred_model1 <- 
   examenes_casos_rm %>% 
   nest(data = c(-Semana)) %>% 
   mutate(reg_casos = map(data, ~lm(N_Casos ~ N_Tests, data = .)),
          pred_with_median_tests = map_dbl(reg_casos, ~predict(., newdata = tibble(N_Tests = 10000))))
 
 # First plot
-examenes_casos_rm %>% 
-  filter(Semana %in% c(31, 35, 40, 49)) %>% 
+examenes_casos_rm_filt <- 
+  examenes_casos_rm %>% 
+  filter(Semana %in% c(31, 35, 40, 49, 51)) %>% 
+  left_join(casos_pred_model1,
+            by = "Semana")
+
+examenes_casos_rm_last2days <- 
+  examenes_casos_rm_filt %>% 
+  filter(Fecha %in% c(lubridate::ymd(20201217, 20201219, 20201218, 20201220)))
+
+examenes_casos_rm_filt %>% 
   ggplot(aes(N_Tests, N_Casos, color = factor(Semana))) +
   geom_point() +
-  geom_smooth(method = "lm", fullrange = TRUE) +
+  geom_smooth(method = "lm", fullrange = TRUE, se = FALSE) +
+  ggrepel::geom_label_repel(data = examenes_casos_rm_last2days,
+                          aes(label = as.character(Fecha))) +
   labs(
     subtitle = "Data for Metropolitan Region, Chile",
     x = "Number of Tests",
@@ -70,11 +57,8 @@ examenes_casos_rm %>%
     color = "Week")
 
 # Second plot
-examenes_casos_rm %>% 
-  filter(Semana %in% c(31, 35, 40, 49)) %>% 
-  left_join(casos_pred_10000_tests,
-            by = "Semana") %>% 
-  ggplot(aes(N_Tests, N_Casos, color = factor(Semana))) +
+ggplot(examenes_casos_rm_filt,
+       aes(N_Tests, N_Casos, color = factor(Semana))) +
   geom_point() +
   geom_vline(xintercept = 10000, color = "blue4") +
   geom_point(aes(x = 10000, y = pred_with_median_tests), size = 5,
@@ -93,6 +77,17 @@ examenes_casos_rm %>%
            label = "10.000 daily tests",
            color = "blue4")
 
+## Pred with model 2
+model2 <- 
+  lm(N_Casos ~ factor(Semana) + N_Tests, data = examenes_casos_rm)
+
+df_adj_cases_model2 <- 
+  examenes_casos_rm %>% 
+  mutate(N_Tests = 10000) %>% 
+  add_predictions(model2, var = "adjusted_cases") %>%
+  group_by(Semana) %>% 
+  summarise(adjusted_cases = mean(adjusted_cases))
+
 # Function to create date from week number
 week_to_date <- function(week_n) {
   week_start <- 
@@ -107,14 +102,13 @@ week_to_date <- function(week_n) {
 # Third plot
 color_hitos <- "firebrick3"
 
-casos_pred_10000_tests %>% 
+df_adj_cases_model2 %>% 
   filter(Semana >= 31) %>% 
-  ggplot(aes(Semana, pred_with_median_tests)) + 
+  ggplot(aes(Semana, adjusted_cases)) + 
   geom_line() +
   geom_point() +
   geom_vline(xintercept = 33, color = color_hitos) +
   geom_vline(xintercept = 38, color = color_hitos) +
-  geom_vline(xintercept = 47.5, color = color_hitos) +
   geom_vline(xintercept = 50.5, color = color_hitos) +
   annotate("label",
            x = 33,
@@ -125,22 +119,19 @@ casos_pred_10000_tests %>%
            y = 700,
            label = "Puente Alto avanzó\na fase 2", color = color_hitos) +
   annotate("label",
-           x = 47.5,
-           y = 700,
-           label = "Providencia y Est. Central\navanzó a fase 4", color = color_hitos) +
-  annotate("label",
            x = 50.5,
            y = 700,
            label = "RM retrocedió\na fase 2", color = color_hitos) +
-  ggrepel::geom_text_repel(aes(label = scales::comma(pred_with_median_tests, 1)),
+  ggrepel::geom_text_repel(aes(label = scales::comma(adjusted_cases, 1)),
                            size = 3) +
   labs(title = "Casos diarios en Región Metropolitana\najustando por cantidad de tests PCR",
-       subtitle = "Asumiendo 10.000 tests diarios",
+       subtitle = str_c("Asumiendo 10.000 tests diarios. Actualizado a ", 
+                        format(max_fecha, "%d de %B")),
        y = "Casos diarios",
        x = "Semana",
        caption = "Datos: github.com/MinCiencia/Datos-COVID19
        Código: github.com/franciscoyira/covid_plots") +
-  scale_x_continuous(breaks = seq(30, 50, 2),
+  scale_x_continuous(breaks = seq(31, 51, 2),
                      labels = week_to_date) +
   coord_flip() +
   ggthemes::theme_fivethirtyeight() +
@@ -154,5 +145,5 @@ casos_pred_10000_tests %>%
          width = 9, height = 16,
          units = "cm", type = "cairo-png", scale = 1.4)
 
-# TODO: cambiar alineamiento de texto en histos (probar con justificado a
+# TODO: cambiar alineamiento de texto en hitos (probar con justificado a
 # izquierda o derecha)
