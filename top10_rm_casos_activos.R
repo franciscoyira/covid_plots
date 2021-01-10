@@ -12,17 +12,11 @@ bigrona_activos_comuna_clean <-
                values_to = "casos_activos") %>% 
   rename(cod_region = `Codigo region`,
          cod_comuna = `Codigo comuna`) %>% 
-  mutate(fecha = lubridate::ymd(fecha)) %>% 
-  # Filtro de fechas para reproducibilidad
-  filter(fecha <= lubridate::ymd(20210104))
+  mutate(fecha = lubridate::ymd(fecha))
 
 activos_comuna_rm <- 
   bigrona_activos_comuna_clean %>% 
-  filter(Region == "Metropolitana") %>% 
-  mutate(fase_ene2020 =
-           ifelse(Comuna %in% comunas_fase_3_ene2020,
-                  "Fase 3",
-                  "Fase 2"))
+  filter(Region == "Metropolitana")
 
 ## Tabla de comunas top 10 
 ## Ranking por casos activos
@@ -81,6 +75,9 @@ df_ranking_casos_act %>%
   opt_align_table_header("left")
 
 # TODO: Aprender como modificar rango de heatmap 
+
+# TODO: agregar flecha indicando su comuna bajo o subio en ranking
+# TODO: agregar números de ranking
 
 # TODO: indicar que segunda columna es valor actual y primera columna es cuando
 # estábamos en cuarentena
