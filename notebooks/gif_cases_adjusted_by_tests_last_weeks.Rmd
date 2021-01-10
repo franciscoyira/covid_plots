@@ -1,0 +1,136 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(here)
+library(modelr)
+library(lubridate)
+
+source(here("functions", "retrieve_tests_cases_region.R"))
+```
+
+
+```{r}
+examenes_casos_rm <- 
+  retrieve_tests_cases_region() %>% 
+  filter(Region == "Metropolitana")
+
+max_fecha <- 
+  examenes_casos_rm %>% 
+  pull(Fecha) %>% max()
+```
+
+
+```{r}
+dates_plot <- 
+  seq.Date(ymd(20201229), ymd(20210110), by = 1) %>% 
+  setdiff(ymd(20210104)) %>% 
+  as.Date(origin="1970-01-01")
+
+for(i in seq_along(dates_plot)) {
+examenes_casos_loop <- examenes_casos_rm %>% 
+  filter(Fecha <= dates_plot[[i]])
+
+
+model2 <- 
+  lm(N_Casos ~ factor(semana) + N_Tests, data = examenes_casos_loop)
+
+df_adj_cases_model2 <- 
+  examenes_casos_loop %>% 
+  mutate(N_Tests = 10000) %>% 
+  add_predictions(model2, var = "adjusted_cases") %>%
+  group_by(semana) %>% 
+  summarise(adjusted_cases = mean(adjusted_cases),
+            .groups = "drop")
+
+df_adj_cases_model2_filt <- 
+  df_adj_cases_model2 %>% 
+  filter(semana %in% ymd(c(20210104, 20201228))) %>% 
+  mutate(semana = if_else(semana == ymd(20210104),
+                          "Esta semana",
+                          "Semana pasada"))
+examenes_casos_loop <- 
+  examenes_casos_loop %>% 
+  add_predictions(model2, var = "adjusted_cases") %>% 
+  filter(semana %in% ymd(c(20210104, 20201228))) %>% 
+  mutate(semana = if_else(semana == ymd(20210104),
+                          "Esta semana",
+                          "Semana pasada")) 
+
+examenes_casos_loop %>%
+  ggplot(aes(N_Tests, N_Casos, color = semana)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(
+    aes(y = adjusted_cases),
+    method = "lm",
+    fullrange = TRUE,
+    se = FALSE
+  ) +
+  geom_vline(
+    xintercept = 10000,
+    size = 1.2,
+    alpha = 0.5,
+    color = "dodgerblue4"
+  ) +
+  geom_point(data = df_adj_cases_model2_filt,
+             aes(x = 10000, y = adjusted_cases),
+             size = 3) +
+  geom_label(data = examenes_casos_loop %>%
+               filter(Fecha == max(Fecha)),
+             aes(label = format(Fecha, "%d %b")),
+             vjust = -0.2) +
+  geom_point(data = examenes_casos_loop %>%
+               filter(Fecha == max(Fecha)),
+             size = 3) +
+  
+  scale_x_continuous(labels = scales::comma) +
+  scale_color_manual(values =
+                       c("Semana pasada" = "lightpink4",
+                         "Esta semana" = "indianred")) +
+  geom_label(
+    data = df_adj_cases_model2_filt,
+    nudge_x = 100,
+    aes(
+      x = 10000,
+      y = adjusted_cases,
+      label = scales::comma(adjusted_cases,
+                            accuracy = 1)
+    ),
+    size = 4,
+    show.legend = FALSE
+  ) +
+  
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(
+    x = "Tests PCR",
+    y = "Casos confirmados",
+    color = "Semana",
+    subtitle = "Región Metropolitana"
+  ) +
+  expand_limits(x = c(7500, 22500),
+                y = c(400, 1000)) +
+  ggsave(
+    here(
+      "outputs",
+      "gif_fitting_adjusted_cases",
+      str_c(dates_plot[[i]], ".png")
+    ),
+    dpi = 400,
+    width = 16,
+    height = 12,
+    units = "cm",
+    type = "cairo-png",
+    scale = 1.4
+  )
+}
+  
+
+# DONE: colores fijos por semana
+# TODO: buscar forma de que aparezca una línea con una sola observacion
+# TODO: evitar tanta variabilidad en posición del label del punto en 10.000 tests
+```
+
