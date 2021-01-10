@@ -28,7 +28,9 @@ retrieve_tests_cases_region <- function() {
     examenes_region_dia %>% 
     dplyr::left_join(casos_region_dia,
               by = c("Region", "Fecha")) %>% 
-    dplyr::mutate(Semana = lubridate::isoweek(Fecha))
+    dplyr::mutate(semana = lubridate::floor_date(Fecha, unit = "week",
+                                                 week_start = 1))
+
   
   examenes_casos
 }
