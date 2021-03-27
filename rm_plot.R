@@ -37,18 +37,23 @@ df_adj_cases_model2 %>%
   geom_vline(xintercept = ymd('2020-08-10'), color = color_hitos) +
   geom_vline(xintercept = ymd('2020-09-14'), color = color_hitos) +
   geom_vline(xintercept = ymd('2020-12-07'), color = color_hitos) +
+  geom_vline(xintercept = ymd('2021-03-15'), color = color_hitos) +
   annotate("label",
            x = ymd('2020-08-10'),
-           y = 350,
+           y = 1100,
            label = "Stgo. Centro avanzó\na fase 2", color = color_hitos) +
   annotate("label",
            x = ymd('2020-09-14'),
-           y = 700,
+           y = 1100,
            label = "Puente Alto avanzó\na fase 2", color = color_hitos) +
   annotate("label",
            x = ymd('2020-12-07'),
-           y = 700,
+           y = 1100,
            label = "RM retrocedió\na fase 2", color = color_hitos) +
+  annotate("label",
+           x = ymd('2021-03-15'),
+           y = 400,
+           label = "Stgo. Centro retrocedió\na fase 1", color = color_hitos) +
   ggrepel::geom_text_repel(aes(label = scales::comma(adjusted_cases, 1)),
                            size = 3) +
   labs(title = "Casos diarios en Región Metropolitana\najustando por cantidad de tests PCR",
@@ -61,16 +66,16 @@ df_adj_cases_model2 %>%
   scale_x_date(breaks = seq(max_semana, ymd('2020-07-15'), -14),
                      date_labels = "%b %d") +
   expand_limits(y = 0) +
-  #coord_flip() +
+ coord_flip() +
   ggthemes::theme_fivethirtyeight() +
   theme(plot.title.position = "plot",
         # Whitespace in top and bottom to not overlap IG stories controls
-        #plot.margin = unit(c(0.7,0.1,0.7,0.1), "inches"),
+        plot.margin = unit(c(0.7,0.1,0.7,0.1), "inches"),
         axis.title = element_text()) +
   ggsave(here("outputs", "casos_rm_stories.png"),
          dpi = 400,
          # IG stories aspect ratio
-         width = 16, height = 9,
+         width = 9, height = 16,
          units = "cm", type = "cairo-png", scale = 1.4)
 
 # TODO: cambiar alineamiento de texto en hitos (probar con justificado a
