@@ -1,6 +1,6 @@
 library(tidyverse)
 library(gganimate)
-library(sinimr)
+library(sinimr) # https://github.com/robsalasco/sinimr
 library(sf)
 
 # References:
@@ -21,10 +21,11 @@ var <- get_sinim(varcode, 2018,
 pasoapaso_raw <- 
   read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto74/paso_a_paso.csv")
 
-# Filter to use only data of Santiago 
+# Filter to use only data of Santiago
 pasopaso_slice <- 
   pasoapaso_raw %>% 
   filter(codigo_region == 13) %>% 
+  select(codigo_region:`2022-04-13`) %>%
   pivot_longer(
     cols = -(1:5),
     names_to = "fecha",
@@ -60,19 +61,11 @@ mapa_animado <-
         legend.title = element_text(size = 14))+
   labs(fill = "Lockdown level") +
   transition_time(fecha) +
-  ggtitle('Lockdown levels in Santiago (Urban area) by municipality, by date',
+  ggtitle('Lockdown levels in municipalities of Santiago (Urban area), by date',
           subtitle = "{gsub('^0', '', format(frame_time, ('%d %B, %Y')))}") 
 
 # Export to GIF
 animate(mapa_animado, nframes = n_distinct(pasopaso_slice$fecha),
         height = 335, width = 600)
 
-anim_save("mapa_pasoapaso_rm.gif")
-
-
-# animate(mapa_animado, nframes = n_distinct(pasopaso_slice$fecha)*2,
-#         height = 335, width = 600)
-# 
-#   anim_save("mapa_pasoapaso_rm.mp4",
-#             renderer = av_renderer())
-#   
+anim_save("lockdown_levels_santiago.gif")
