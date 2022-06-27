@@ -12,7 +12,15 @@ The geographic layout (geometries) comes from the [`sinimr` R package](https://g
 
 Each frame of the animated plot represents a day, and the colours represent the levels of the four-tier restriction system implemented in Chile between 2020 and 2022 as a response to the pandemic.
 
-Code: [<img src="https://img.shields.io/badge/r-%23276DC3.svg?style=for-the-badge&amp;logo=r&amp;logoColor=white" alt="R Code" width="37"/>](animated_map_lockdown_levels.R)
+Code: [R script](animated_map_lockdown_levels.R)
+
+## Daily COVID cases and lagged deaths during the vaccination process in Chile
+
+![](outputs/covid_deaths_offset.png)
+
+A time series plot to track the relationship between COVID cases and deaths in Chile since the country started its vaccination process. The deaths series is lagged in 14 days under the assumption that COVID cases today predict deaths 14 days later. For both series, a 7-day roll mean is also shown to get rid off the weekly seasonality and better visualise the underlying trends.
+
+Code: [R script](cases_vs_offset_deaths.R)
 
 ## Data sources
 
