@@ -2,6 +2,8 @@
 
 Data visualisations about the COVID-19 pandemic.
 
+<!--- 1.  [Animated map of COVID restrictions in Santiago (2020-2022)](#animated-map-of-covid-restrictions-in-santiago-2020-2022) --->
+
 ## Animated map of COVID restrictions in Santiago (2020-2022)
 
 ![Animated map of COVID lockdown levels in municipalities of Santiago urban area, from 2020 to 2022](lockdown_levels_santiago.gif)
