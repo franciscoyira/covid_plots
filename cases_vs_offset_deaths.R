@@ -37,7 +37,9 @@ df_cases_deaths <- covid_totales_nacionales %>%
   filter(date >= '2020-08-01')
 
 # Create plot
-df_cases_deaths %>% 
+plot_covid_deaths <- 
+  df_cases_deaths %>% 
+  filter(date <= '2021-12-31') %>% 
   ggplot(aes(x = date)) +
   geom_line(aes(y = cases, color = "cases",
                 alpha = "daily value",
@@ -51,19 +53,18 @@ df_cases_deaths %>%
   geom_line(aes(y = cases_rollmean, color = "cases",
                 alpha = "rollmean",
                 size = "rollmean")) +
-  geom_rect(aes(
-    xmin = lubridate::ymd('2021-03-01'),
-    xmax = lubridate::ymd('2021-03-18'),
-    ymin = 2000,
-    ymax = 4700
-  ),
-  color = "dodgerblue4",
-  fill = NA) +
+  geom_vline(xintercept = lubridate::ymd(20210731),
+             color = "dodgerblue4") +
+  annotate(geom = "label",
+           label = "80% of the target population\nis fully vaccinated",
+           x = lubridate::ymd(20210731),
+           y = 10000,
+           color = "dodgerblue4") +
   scale_y_continuous(name = "Confirmed cases",
                      sec.axis = sec_axis(~./34,
                                          name = "Daily deaths due to COVID (14 days later)")) +
-  scale_x_date(date_breaks = "1 month",
-               date_labels = "%b",
+  scale_x_date(date_breaks = "3 months",
+               date_labels = "%b %Y",
                name = "date") +
   scale_color_manual(values = c(
                        'cases' = 'red',
@@ -71,13 +72,15 @@ df_cases_deaths %>%
   scale_alpha_manual(values = c(
     'daily value' = 0.5,
     'rollmean' = 1
-  ), guide = FALSE) +
+  ), guide = "none") +
   scale_size_manual(values = c(
     'daily value' = 0.75,
     'rollmean' = 1.5
   )) +
+  labs(title = "COVID-19 in Chile: daily cases and deaths 14 days later") +
   theme_minimal() +
   theme(legend.position = "bottom",
         legend.title = element_blank())
 
-
+ggsave(here("outputs", "covid_deaths_offset.png"),
+       bg = "white")
