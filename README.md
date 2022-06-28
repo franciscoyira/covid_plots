@@ -2,7 +2,10 @@
 
 Data visualisations about the COVID-19 pandemic.
 
-<!--- 1.  [Animated map of COVID restrictions in Santiago (2020-2022)](#animated-map-of-covid-restrictions-in-santiago-2020-2022) --->
+-   [Animated map of COVID restrictions in Santiago (2020-2022)](#animated-map-of-covid-restrictions-in-santiago-2020-2022)
+-   [Daily COVID cases and lagged deaths during the vaccination process in Chile](#daily-covid-cases-and-lagged-deaths-during-the-vaccination-process-in-chile)
+-   [Adjusted daily confirmed COVID cases in the Metropolitan Region of Chile](#adjusted-daily-confirmed-covid-cases-in-the-metropolitan-region-of-chile)
+-   [Ranking of municipalities with the highest rates of active cases in the Metropolitan Region of Chile](#ranking-of-municipalities-with-the-highest-rates-of-active-cases-in-the-metropolitan-region-of-chile)
 
 ## Animated map of COVID restrictions in Santiago (2020-2022)
 
@@ -28,9 +31,9 @@ Code: [R script](cases_vs_offset_deaths.R)
 
 ![](outputs/adjusted_covid_cases.png)
 
-Confirmed COVID cases can increase both due to an increase in real cases or an increase in testing (i.e. if there is a exogeneous increase in PCR tests, confirmed cases are going to increase even if the virus prevalence is the same). This plot was an attempt to adjust by this source of variation and get an estimate of COVID cases would the testing rate been held constant (i.e. an estimate that only fluctuates due to the prevalence of the virus in the population). 
+Confirmed COVID cases can increase both due to an increase in real cases or an increase in testing (i.e. if there is a exogeneous increase in PCR tests, confirmed cases are going to increase even if the virus prevalence is the same). This plot was an attempt to adjust by this source of variation and get an estimate of COVID cases would the testing rate been held constant (i.e. an estimate that only fluctuates due to the prevalence of the virus in the population).
 
-Under the hood, this plot uses a linear model with daily data that has a different intercept for each week but constant slope (confirmed cases ~ PCR tests) for all the weekly regression lines. The data point visualised for each week is the fitted value of each regression line for PCR tests = 10,000. A key assumption is that the prevalence of the virus is approximately constant within each week but varies across weeks. 
+Under the hood, this plot uses a linear model with daily data that has a different intercept for each week but constant slope (confirmed cases \~ PCR tests) for all the weekly regression lines. The data point visualised for each week is the fitted value of each regression line for PCR tests = 10,000. A key assumption is that the prevalence of the virus is approximately constant within each week but varies across weeks.
 
 BTW, I don't have an epidemiology background, so you shouldn't take this too seriously, nor take this methodology as something to replicate. I made this just to inform conversations with friends and coworkers about the outlook of the pandemic in Santiago.
 
