@@ -4,6 +4,8 @@ library(gt)
 bigrona_activos_comuna_raw <- 
   read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto19/CasosActivosPorComuna.csv") 
 
+# TODO: set a fixed week to compare
+
 bigrona_activos_comuna_clean <- 
   bigrona_activos_comuna_raw %>% 
   filter(!is.na(`Codigo comuna`)) %>% 
@@ -24,7 +26,7 @@ df_ranking_casos_act <-
   activos_comuna_rm %>% 
   mutate(casos_x_100mh = (casos_activos/Poblacion)*100000) %>% 
   select(Comuna, fecha, casos_x_100mh) %>% 
-  filter(fecha %in% c(max(fecha), lubridate::ymd("2020-07-31"))) %>% 
+  filter(fecha %in% c(lubridate::ymd("2021-07-30"), lubridate::ymd("2020-07-31"))) %>% 
   mutate(fecha = format(fecha, "%d %b %Y")) %>% 
   pivot_wider(
     id_cols = Comuna,
@@ -35,18 +37,20 @@ df_ranking_casos_act <-
   arrange(desc(.[[3]])) %>% 
   slice_head(n = 10)
 
-df_ranking_casos_act %>% 
-  rename(`Variación` = variacion) %>% 
+table_top10_active_cases <- 
+  df_ranking_casos_act %>% 
+  rename(`Variation` = variacion,
+         Municipality = Comuna) %>% 
   gt() %>% 
   fmt_number(
     columns = 2:4,
     decimals = 1
   ) %>% 
   tab_spanner(
-    label = "Casos activos por 100 mil habitantes",
+    label = "Active cases per 100 thousand people",
     columns = 2:4
   ) %>% 
-  tab_header(md("**Las 10 comunas de la RM con mayor tasa de casos activos**")) %>% 
+  tab_header(md("**The 10 municipalities with the highest rate of active cases in Chile's Metropolitan Region**")) %>% 
   tab_options(data_row.padding = px(15)) %>% 
   tab_style(
     style = list(
@@ -56,7 +60,7 @@ df_ranking_casos_act %>%
     locations = list(
       cells_body(
         columns = 4,
-        rows = `Variación` > 0)
+        rows = `Variation` > 0)
     )) %>% 
   data_color(
     columns = 3, 
@@ -68,20 +72,15 @@ df_ranking_casos_act %>%
     )
   ) %>% 
   tab_source_note(
-    md("**Datos:** github.com/MinCiencia/Datos-COVID19")) %>% 
+    md("**Data:** github.com/MinCiencia/Datos-COVID19")) %>% 
   tab_source_note(
-    md(" **Código:** github.com/franciscoyira/covid_plots")) %>% 
+    md("**Code:** github.com/franciscoyira/covid_plots")) %>% 
   opt_all_caps() %>% 
   opt_align_table_header("left")
 
-# TODO: Aprender como modificar rango de heatmap 
-
-# TODO: agregar flecha indicando su comuna bajo o subio en ranking
-# TODO: agregar números de ranking
-
-# TODO: indicar que segunda columna es valor actual y primera columna es cuando
-# estábamos en cuarentena
-
-# TODO: destacar títulos con negrita
-
-# TODO: Agregar temas https://themockup.blog/posts/2020-09-26-functions-and-themes-for-gt-tables/?panelset1=theme-code&panelset3=theme-code2&panelset4=theme-code3 
+gtsave(table_top10_active_cases,
+       filename = "gtable_top10_active_cases.png",
+       path = here::here("outputs"),
+       expand = 10,
+       vwidth  = 600,
+       vheight = 1200)
