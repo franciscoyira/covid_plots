@@ -24,7 +24,7 @@ A time series plot to track the relationship between COVID cases and deaths in C
 
 Code: [R script](cases_vs_offset_deaths.R)
 
-## Adjusted daily confirmed COVID cases in Chile's Metropolitan Region
+## Adjusted daily confirmed COVID cases in the Metropolitan Region of Chile
 
 ![](outputs/adjusted_covid_cases.png)
 
@@ -35,6 +35,16 @@ Under the hood, this plot uses a linear model with daily data that has a differe
 BTW, I don't have an epidemiology background, so you shouldn't take this too seriously, nor take this methodology as something to replicate. I made this just to inform conversations with friends and coworkers about the outlook of the pandemic in Santiago.
 
 Code: [R script](adjusted_covid_cases.R)
+
+## Ranking of municipalities with the highest rates of active cases in the Metropolitan Region of Chile
+
+![](outputs/gtable_top10_active_cases.png)
+
+Table created with the `gt` R package showing the 10 municipalities with the highest rates of COVID active cases (confirmed cases minus deths and recoveries) in a given week of 2021. It includes a benchmark column (the first one) showing the corresponding active cases rate during the peak of the first COVID wave (mid-2020) and the percent change between the two active cases rates.
+
+Increases in the active cases rates are highlighted with red in the Variation column. However, note that this comparison doesn't consider factors such as the increase in PCR tests, so a higher active cases rate doesn't necessarily mean a higher virus prevalence in the population.
+
+Code: [R script](top10_rm_casos_activos.R)
 
 ## Data sources
 
