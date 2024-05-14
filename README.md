@@ -1,5 +1,7 @@
 # covid_plots
 
+Link to project in my portfolio: https://cv.franciscoyira.com/project/covid-plots/
+
 Data visualisations about the COVID-19 pandemic.
 
 -   [Animated map of COVID restrictions in Santiago (2020-2022)](#animated-map-of-covid-restrictions-in-santiago-2020-2022)
